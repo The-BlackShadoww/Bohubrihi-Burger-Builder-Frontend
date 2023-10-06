@@ -4,6 +4,8 @@ import { connect } from "react-redux";
 import axios from "axios";
 import Spinner from "../../Spinner/Spinner";
 import { resetIngredients } from "../../../redux/actionCreators";
+import { Navigate } from "react-router-dom";
+import { updateProfile, initPayment, newOrder } from "../../../api/profileApi";
 
 const mapStateTopProps = (sate) => {
     return {
@@ -24,19 +26,29 @@ const mapDispatchToProps = (dispatch) => {
 class Checkout extends Component {
     state = {
         values: {
-            deliveryAddress: "",
             phone: "",
+            address1: "",
+            address2: "",
+            city: "",
+            postcode: "",
+            country: "",
             paymentType: "Cash on Delivery",
         },
         isLoading: false,
         isModalOpen: false,
         modalMsg: "",
+        goBack: false,
+        sessionSuccess: false,
+        redirectUrl: "",
+        failed: false,
     };
 
     //?--------- this function doesn't work -----------
 
     goBack = () => {
-        this.props.history.goBack("/");
+        this.setState({
+            goBack: true,
+        });
     };
 
     //? ------------------------------------------------
@@ -52,45 +64,71 @@ class Checkout extends Component {
     };
 
     submitHandler = () => {
-        this.setState({ isLoading: true });
+        updateProfile(this.props.token, this.state.values)
+            .then((res) => console.log(res.data))
+            .catch((err) => console.log(err));
+
         const order = {
             ingredients: this.props.ingredients,
-            customer: this.state.values, //! <<<<<<<<<<<<<<<<<<<<<<
+            customer: this.state.values,
             price: this.props.totalPrice,
             orderTime: new Date(),
             userId: this.props.userId,
+            orderStatus: "Cash on delivery",
         };
-        axios
-            .post(
-                "https://burger-builder-app-bbcb4-default-rtdb.firebaseio.com/orders.json?auth=" +
-                    this.props.token,
-                order
-            )
-            .then((response) => {
-                if (response.status === 200) {
-                    this.setState({
-                        isLoading: false,
-                        isModalOpen: true,
-                        modalMsg: "Order Placed Successfully!",
-                    });
-                    this.props.resetIngredients();
-                } else {
-                    this.setState({
-                        isLoading: false,
-                        isModalOpen: true,
-                        modalMsg: "Something Went Wrong! Order Again!",
-                    });
-                }
-            })
-            .catch((err) => {
-                this.setState({
-                    isLoading: false,
-                    isModalOpen: true,
-                    modalMsg: "Something Went Wrong! Order Again!",
-                });
-            });
 
-        console.log(order);
+        const order2 = {
+            ingredients: this.props.ingredients,
+            customer: this.state.values,
+            price: this.props.totalPrice,
+            orderTime: new Date(),
+            userId: this.props.userId,
+            orderStatus: "Paid according to users",
+        };
+
+        const orderJsonString = JSON.stringify(order2);
+
+        if (this.state.values.paymentType === "Pay Now") {
+            initPayment(
+                this.props.token,
+                this.props.totalPrice,
+                orderJsonString
+            )
+                .then((response) => {
+                    console.log(response.data);
+                    if (response.data.status === "SUCCESS") {
+                        this.setState({
+                            sessionSuccess: true,
+                            redirectUrl: response.data.GatewayPageURL,
+                            failed: false,
+                        });
+                    }
+                })
+                .catch((err) => {
+                    console.log(err);
+                    this.setState({
+                        failed: true,
+                        sessionSuccess: false,
+                    });
+                });
+        } else {
+            newOrder(this.props.token, order)
+                .then((res) => {
+                    if (res.status === 201) {
+                        this.setState({
+                            isModalOpen: true,
+                            modalMsg: "Order Placed Successfully",
+                        });
+                    } else {
+                        this.setState({
+                            isLoading: false,
+                            isModalOpen: true,
+                            modalMsg: "Something Went Wrong! Order Again!",
+                        });
+                    }
+                })
+                .catch((err) => console.log(err));
+        }
     };
 
     render() {
@@ -114,19 +152,54 @@ class Checkout extends Component {
                         padding: "20px",
                     }}
                 >
-                    <textarea
-                        name="deliveryAddress"
-                        value={this.state.values.deliveryAddress}
-                        className="form-control"
-                        placeholder="Your Address"
-                        onChange={(e) => this.inputChangerHandler(e)}
-                    ></textarea>
-                    <br />
                     <input
                         name="phone"
                         className="form-control"
                         value={this.state.values.phone}
                         placeholder="Your Phone Number"
+                        onChange={(e) => this.inputChangerHandler(e)}
+                    />
+                    <br />
+                    <textarea
+                        name="address1"
+                        value={this.state.values.address1}
+                        className="form-control"
+                        placeholder="address1"
+                        onChange={(e) => this.inputChangerHandler(e)}
+                    ></textarea>
+                    <br />
+                    <textarea
+                        name="address2"
+                        value={this.state.values.address2}
+                        className="form-control"
+                        placeholder="address2"
+                        onChange={(e) => this.inputChangerHandler(e)}
+                    ></textarea>
+                    <br />
+                    <input
+                        type="text"
+                        name="city"
+                        value={this.state.values.city}
+                        placeholder="City"
+                        className="form-control"
+                        onChange={(e) => this.inputChangerHandler(e)}
+                    />
+                    <br />
+                    <input
+                        type="text"
+                        name="postcode"
+                        value={this.state.values.postcode}
+                        placeholder="postcode"
+                        className="form-control"
+                        onChange={(e) => this.inputChangerHandler(e)}
+                    />
+                    <br />
+                    <input
+                        type="text"
+                        name="country"
+                        value={this.state.values.country}
+                        placeholder="country"
+                        className="form-control"
                         onChange={(e) => this.inputChangerHandler(e)}
                     />
                     <br />
@@ -139,7 +212,7 @@ class Checkout extends Component {
                         <option value="Cash On Delivery">
                             Cash On Delivery
                         </option>
-                        <option value="Bkash">Bkash</option>
+                        <option value="Pay Now">Pay Now</option>
                     </select>
                     <br />
                     <Button
@@ -150,6 +223,7 @@ class Checkout extends Component {
                     >
                         Place Order
                     </Button>
+
                     <Button
                         color="secondary"
                         className="ms-1"
@@ -163,14 +237,20 @@ class Checkout extends Component {
         return (
             <div>
                 {this.state.isLoading ? <Spinner /> : form}
+                {this.state.sessionSuccess
+                    ? (window.location = this.state.redirectUrl)
+                    : ""}
                 <Modal isOpen={this.state.isModalOpen} onClick={this.goBack}>
                     <ModalBody>
                         <p>{this.state.modalMsg}</p>
                     </ModalBody>
                 </Modal>
+
+                {this.state.goBack && <Navigate to="/" replace={true} />}
             </div>
         );
     }
 }
 
 export default connect(mapStateTopProps, mapDispatchToProps)(Checkout);
+

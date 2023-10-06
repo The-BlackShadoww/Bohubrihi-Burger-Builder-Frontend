@@ -42,16 +42,16 @@ export const orderLoadFailed = () => {
 };
 
 export const fetchOrders = (token, userId) => (dispatch) => {
-    const queryParams = '&orderBy="userId"&equalTo="' + userId + '"';
+    let url = process.env.REACT_APP_BACKEND_URL;
     axios
-        .get(
-            //! This link has to be written in a single quotation '' according to the rules of firebase.
-            'https://burger-builder-app-bbcb4-default-rtdb.firebaseio.com/orders.json?auth=' +
-                token +
-                queryParams
-        )
+        .get(`${url}/api/order`, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        })
         .then((response) => {
             dispatch(loadOrders(response.data));
+            console.log(response.data);
         })
         .catch((err) => {
             dispatch(orderLoadFailed());

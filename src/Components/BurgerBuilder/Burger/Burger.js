@@ -11,7 +11,7 @@ const Burger = (props) => {
             });
         })
         .reduce((arr, element) => {
-            console.log(arr);
+            // console.log(arr);
             // console.log(element)
             return arr.concat(element);
         }, []);

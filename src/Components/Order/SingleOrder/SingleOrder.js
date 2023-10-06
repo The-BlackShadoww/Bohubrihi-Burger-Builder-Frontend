@@ -1,5 +1,4 @@
 import React from "react";
-//!------------------------------------------------
 
 const SingleOrder = (props) => {
     const ingredientSummary = props.order.ingredients.map((item) => {
@@ -19,6 +18,13 @@ const SingleOrder = (props) => {
         );
     });
 
+    let orderStatus = null;
+    if (props.order.customer.paymentType === "Pay Now") {
+        orderStatus = <span>Paid according to users</span>;
+    } else {
+        orderStatus = <span>Cash on Delivery</span>;
+    }
+    
     return (
         <div
             style={{
@@ -29,8 +35,9 @@ const SingleOrder = (props) => {
                 marginBottom: "10px",
             }}
         >
-            <p>Order Number: {props.order.id}</p>
-            <p>Delivery Address: {props.order.customer.deliveryAddress}</p>
+            <p>Order Number: {props.order._id}</p>
+            <p>Delivery Address: {props.order.customer.address1}</p>
+            <p>Order status: {orderStatus}</p>
             <hr />
             {ingredientSummary}
             <hr />

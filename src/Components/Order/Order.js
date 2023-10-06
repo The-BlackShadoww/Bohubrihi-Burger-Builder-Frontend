@@ -3,8 +3,6 @@ import { connect } from "react-redux";
 import { fetchOrders } from "../../redux/actionCreators";
 import SingleOrder from "./SingleOrder/SingleOrder";
 import Spinner from "../Spinner/Spinner";
-//!------------------------------------------------
-
 
 const mapStateToProps = (state) => {
     return {
@@ -29,6 +27,7 @@ class Order extends Component {
     componentDidUpdate() {
         console.log(this.props);
     }
+
     render() {
         let orders = null;
         if (this.props.orderErr) {
